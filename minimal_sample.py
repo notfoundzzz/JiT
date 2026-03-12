@@ -13,6 +13,7 @@ def parse_args():
     parser.add_argument("--checkpoint", default="./output_local/checkpoint-last.pth", type=str)
     parser.add_argument("--output_dir", default="./samples_local", type=str)
     parser.add_argument("--num_samples", default=4, type=int)
+    parser.add_argument("--labels", default="", type=str)
     parser.add_argument("--cfg", default=None, type=float)
     parser.add_argument("--steps", default=None, type=int)
     parser.add_argument("--device", default="cuda", type=str)
@@ -51,14 +52,22 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    labels = torch.zeros(args.num_samples, dtype=torch.long, device=args.device)
+    if args.labels:
+        label_values = [int(item.strip()) for item in args.labels.split(",") if item.strip()]
+        if not label_values:
+            raise ValueError("No valid labels were provided")
+        labels = torch.tensor(label_values, dtype=torch.long, device=args.device)
+    else:
+        labels = torch.zeros(args.num_samples, dtype=torch.long, device=args.device)
+
+    args.num_samples = int(labels.shape[0])
 
     with torch.no_grad():
         with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=args.device.startswith("cuda")):
             samples = model.generate(labels)
 
-    for index, sample in enumerate(samples):
-        save_tensor_image(sample, output_dir / f"sample_{index:02d}.png")
+    for index, (sample, label) in enumerate(zip(samples, labels.tolist())):
+        save_tensor_image(sample, output_dir / f"class{label}_sample_{index:02d}.png")
 
     print(f"Saved {args.num_samples} samples to {output_dir.resolve()}")
 

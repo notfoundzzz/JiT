@@ -38,3 +38,23 @@ cd /home/zhahl/JiT
 ```
 
 Images are written to `samples_local/`.
+
+## Visual Toy Experiment
+
+This branch also includes a more structured toy experiment that is easier to inspect visually.
+
+Train on synthetic geometric classes:
+
+```bash
+cd /home/zhahl/JiT
+./run_visual_toy_train.sh
+```
+
+Sample images from the trained checkpoint:
+
+```bash
+cd /home/zhahl/JiT
+./run_visual_toy_sample.sh
+```
+
+Outputs are written to `output_visual_toy/` and `samples_visual_toy/`.
