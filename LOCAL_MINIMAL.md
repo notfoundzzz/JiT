@@ -67,3 +67,16 @@ cd /home/zhahl/JiT
 ```
 
 Triptychs are written to `denoise_visual_toy/`.
+
+## Single A100 ImageNet Run
+
+For a single-GPU A100 sanity run on ImageNet:
+
+```bash
+cd /home/zhahl/JiT
+export IMAGENET_PATH=/path/to/imagenet
+./run_imagenet_a100.sh
+```
+
+This is a reduced real-data run, not the full 8-GPU training recipe from the original README.
+Outputs are written to `output_imagenet_a100/`.
