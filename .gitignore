@@ -4,5 +4,6 @@ output_local/
 output_visual_toy/
 samples_local/
 samples_visual_toy/
+denoise_visual_toy/
 toy_data/
 toy_visual_data/

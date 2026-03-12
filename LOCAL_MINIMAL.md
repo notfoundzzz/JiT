@@ -58,3 +58,12 @@ cd /home/zhahl/JiT
 ```
 
 Outputs are written to `output_visual_toy/` and `samples_visual_toy/`.
+
+If full sampling is still weak, inspect the denoising behavior directly:
+
+```bash
+cd /home/zhahl/JiT
+./run_visual_toy_denoise.sh
+```
+
+Triptychs are written to `denoise_visual_toy/`.
