@@ -81,6 +81,19 @@ cd /home/zhahl/JiT
 
 Outputs are written to `output_visual_3060/`, `samples_visual_3060/`, and `denoise_visual_3060/`.
 
+## Display-First Demo
+
+If the diffusion-style demos still look too weak, use this display-first branch workflow:
+
+```bash
+cd /home/zhahl/JiT
+./run_display_demo_train.sh
+./run_display_demo_render.sh
+```
+
+This keeps the JiT backbone but trains it as a direct denoising reconstructor so the visual result is easier to inspect.
+Outputs are written to `output_display_demo/` and `display_demo_outputs/`.
+
 ## Single A100 ImageNet Run
 
 For a single-GPU A100 sanity run on ImageNet:
