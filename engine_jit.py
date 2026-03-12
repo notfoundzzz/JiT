@@ -5,12 +5,15 @@ import shutil
 
 import torch
 import numpy as np
-import cv2
 
 import util.misc as misc
 import util.lr_sched as lr_sched
-import torch_fidelity
 import copy
+
+
+def _dist_barrier():
+    if misc.is_dist_avail_and_initialized():
+        torch.distributed.barrier()
 
 
 def train_one_epoch(model, model_without_ddp, data_loader, optimizer, device, epoch, log_writer=None, args=None):
@@ -65,6 +68,8 @@ def train_one_epoch(model, model_without_ddp, data_loader, optimizer, device, ep
 
 
 def evaluate(model_without_ddp, args, epoch, batch_size=64, log_writer=None):
+    import cv2
+
 
     model_without_ddp.eval()
     world_size = misc.get_world_size()
@@ -109,7 +114,7 @@ def evaluate(model_without_ddp, args, epoch, batch_size=64, log_writer=None):
         with torch.amp.autocast('cuda', dtype=torch.bfloat16):
             sampled_images = model_without_ddp.generate(labels_gen)
 
-        torch.distributed.barrier()
+        _dist_barrier()
 
         # denormalize images
         sampled_images = (sampled_images + 1) / 2
@@ -124,7 +129,7 @@ def evaluate(model_without_ddp, args, epoch, batch_size=64, log_writer=None):
             gen_img = gen_img.astype(np.uint8)[:, :, ::-1]
             cv2.imwrite(os.path.join(save_folder, '{}.png'.format(str(img_id).zfill(5))), gen_img)
 
-    torch.distributed.barrier()
+    _dist_barrier()
 
     # back to no ema
     print("Switch back from ema")
@@ -132,6 +137,8 @@ def evaluate(model_without_ddp, args, epoch, batch_size=64, log_writer=None):
 
     # compute FID and IS
     if log_writer is not None:
+        import torch_fidelity
+
         if args.img_size == 256:
             fid_statistics_file = 'fid_stats/jit_in256_stats.npz'
         elif args.img_size == 512:
@@ -157,4 +164,4 @@ def evaluate(model_without_ddp, args, epoch, batch_size=64, log_writer=None):
         print("FID: {:.4f}, Inception Score: {:.4f}".format(fid, inception_score))
         shutil.rmtree(save_folder)
 
-    torch.distributed.barrier()
+    _dist_barrier()

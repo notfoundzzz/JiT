@@ -7,9 +7,13 @@ from pathlib import Path
 
 import torch
 import torch.backends.cudnn as cudnn
-from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+
+try:
+    from torch.utils.tensorboard import SummaryWriter
+except ImportError:
+    SummaryWriter = None
 
 from util.crop import center_crop_arr
 import util.misc as misc
@@ -130,7 +134,7 @@ def main(args):
     global_rank = misc.get_rank()
 
     # Set up TensorBoard logging (only on main process)
-    if global_rank == 0 and args.output_dir is not None:
+    if global_rank == 0 and args.output_dir is not None and SummaryWriter is not None:
         os.makedirs(args.output_dir, exist_ok=True)
         log_writer = SummaryWriter(log_dir=args.output_dir)
     else:
@@ -146,9 +150,12 @@ def main(args):
     dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
     print(dataset_train)
 
-    sampler_train = torch.utils.data.DistributedSampler(
-        dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True
-    )
+    if args.distributed:
+        sampler_train = torch.utils.data.DistributedSampler(
+            dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True
+        )
+    else:
+        sampler_train = torch.utils.data.RandomSampler(dataset_train)
     print("Sampler_train =", sampler_train)
 
     data_loader_train = torch.utils.data.DataLoader(
@@ -179,8 +186,11 @@ def main(args):
     print("Actual lr: {:.2e}".format(args.lr))
     print("Effective batch size: %d" % eff_batch_size)
 
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-    model_without_ddp = model.module
+    if args.distributed:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        model_without_ddp = model.module
+    else:
+        model_without_ddp = model
 
     # Set up optimizer with weight decay adjustment for bias and norm layers
     param_groups = misc.add_weight_decay(model_without_ddp, args.weight_decay)
