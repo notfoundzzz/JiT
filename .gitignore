@@ -3,6 +3,7 @@ util/__pycache__/
 output_local/
 output_imagenet_a100/
 output_display_demo/
+output_cloud_a100/
 output_visual_3060/
 output_visual_toy/
 display_demo_outputs/
