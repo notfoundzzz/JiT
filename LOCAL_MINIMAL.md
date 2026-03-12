@@ -68,6 +68,19 @@ cd /home/zhahl/JiT
 
 Triptychs are written to `denoise_visual_toy/`.
 
+## RTX 3060 Visual Demo
+
+For a more visible local demo on a 6GB RTX 3060, use the smaller `JiT-Tiny/16` model:
+
+```bash
+cd /home/zhahl/JiT
+./run_visual_3060_train.sh
+./run_visual_3060_sample.sh
+./run_visual_3060_denoise.sh
+```
+
+Outputs are written to `output_visual_3060/`, `samples_visual_3060/`, and `denoise_visual_3060/`.
+
 ## Single A100 ImageNet Run
 
 For a single-GPU A100 sanity run on ImageNet:
