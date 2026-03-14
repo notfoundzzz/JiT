@@ -12,7 +12,7 @@ from util.crop import center_crop_arr
 
 def parse_args():
     parser = argparse.ArgumentParser("Train a display-first JiT demo")
-    parser.add_argument("--model", default="JiT-Tiny/16", type=str)
+    parser.add_argument("--model", default="JiT-B/16", type=str)
     parser.add_argument("--img_size", default=64, type=int)
     parser.add_argument("--class_num", default=4, type=int)
     parser.add_argument("--data_path", default="./toy_display_data", type=str)

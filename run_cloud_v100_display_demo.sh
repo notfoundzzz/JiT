@@ -43,7 +43,7 @@ fi
 
 echo "Training display-first checkpoint..."
 if ! "${JIT_PYTHON}" train_display_demo.py \
-  --model JiT-Tiny/16 \
+  --model JiT-B/16 \
   --img_size 64 \
   --class_num 4 \
   --data_path "${DISPLAY_DATA_DIR}" \
