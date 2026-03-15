@@ -11,6 +11,11 @@ LOG_DIR="${LOG_DIR:-./logs}"
 mkdir -p "${LOG_DIR}"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="${LOG_DIR}/cloud_v100_visual_toy_${RUN_ID}.log"
+LATEST_LOG_LINK="${LOG_DIR}/cloud_v100_visual_toy_latest.log"
+
+unset LD_LIBRARY_PATH
+unset CUDA_HOME
+unset CUDA_PATH
 
 echo "Visual toy run starting..."
 echo "Full log: ${LOG_FILE}"
@@ -38,6 +43,7 @@ if not torch.cuda.is_available():
     raise SystemExit("CUDA is not available in the uploaded environment.")
 print("device", torch.cuda.get_device_name(0))
 PY
+ln -sfn "$(basename "${LOG_FILE}")" "${LATEST_LOG_LINK}"
 
 if [[ ! -d "${VISUAL_DATA_DIR}/train/class_0" ]]; then
   echo "Creating toy visual dataset at ${VISUAL_DATA_DIR}"

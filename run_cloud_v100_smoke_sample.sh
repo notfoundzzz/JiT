@@ -11,6 +11,11 @@ LOG_DIR="${LOG_DIR:-./logs}"
 mkdir -p "${LOG_DIR}"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="${LOG_DIR}/cloud_v100_smoke_sample_${RUN_ID}.log"
+LATEST_LOG_LINK="${LOG_DIR}/cloud_v100_smoke_sample_latest.log"
+
+unset LD_LIBRARY_PATH
+unset CUDA_HOME
+unset CUDA_PATH
 
 echo "Smoke sample starting..."
 echo "Full log: ${LOG_FILE}"
@@ -29,6 +34,8 @@ if [[ ! -d "${SMOKE_DATA_DIR}/train" ]]; then
   echo "Toy smoke dataset not found: ${SMOKE_DATA_DIR}/train"
   exit 1
 fi
+
+ln -sfn "$(basename "${LOG_FILE}")" "${LATEST_LOG_LINK}"
 
 mkdir -p "${SAMPLE_OUTPUT_DIR}/inputs" "${SAMPLE_OUTPUT_DIR}/generated"
 
