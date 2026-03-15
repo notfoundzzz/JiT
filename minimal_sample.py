@@ -5,6 +5,7 @@ import torch
 from PIL import Image
 
 from denoiser import Denoiser
+from util.amp import get_cuda_autocast_kwargs
 
 
 def parse_args():
@@ -29,6 +30,7 @@ def save_tensor_image(image_tensor, output_path):
 def main():
     args = parse_args()
     torch.manual_seed(args.seed)
+    autocast_kwargs = get_cuda_autocast_kwargs(args.device)
 
     if args.device.startswith("cuda") and not torch.cuda.is_available():
         raise RuntimeError("CUDA requested but not available")
@@ -60,7 +62,7 @@ def main():
         labels = torch.zeros(args.num_samples, dtype=torch.long, device=args.device)
 
     with torch.no_grad():
-        with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=args.device.startswith("cuda")):
+        with torch.amp.autocast(**autocast_kwargs):
             samples = model.generate(labels)
 
     for index, (sample, label) in enumerate(zip(samples, labels.tolist())):

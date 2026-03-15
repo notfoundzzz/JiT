@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 import os
 import time
+import warnings
 from pathlib import Path
 
 import torch
@@ -13,6 +14,7 @@ import torchvision.datasets as datasets
 
 from util.crop import center_crop_arr
 import util.misc as misc
+from util.amp import get_cuda_autocast_kwargs
 
 import copy
 from engine_jit import train_one_epoch, evaluate
@@ -113,6 +115,11 @@ def get_args_parser():
 
 
 def main(args):
+    warnings.filterwarnings(
+        "ignore",
+        message=".*does not support bfloat16 compilation natively, skipping.*",
+        category=UserWarning,
+    )
     misc.init_distributed_mode(args)
     print('Job directory:', os.path.dirname(os.path.realpath(__file__)))
     print("Arguments:\n{}".format(args).replace(', ', ',\n'))
@@ -144,12 +151,13 @@ def main(args):
     ])
 
     dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
-    print(dataset_train)
+    print("Dataset:", dataset_train.__class__.__name__)
+    print("Training samples:", len(dataset_train))
 
     sampler_train = torch.utils.data.DistributedSampler(
         dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True
     )
-    print("Sampler_train =", sampler_train)
+    print("Sampler:", sampler_train.__class__.__name__)
 
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train, sampler=sampler_train,
@@ -165,7 +173,13 @@ def main(args):
     # Create denoiser
     model = Denoiser(args)
 
-    print("Model =", model)
+    autocast_kwargs = get_cuda_autocast_kwargs(device)
+    amp_dtype = autocast_kwargs.get("dtype")
+    if amp_dtype is not None:
+        print("AMP dtype:", str(amp_dtype).replace("torch.", ""))
+    else:
+        print("AMP dtype: disabled")
+    print("Model:", args.model)
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("Number of trainable parameters: {:.6f}M".format(n_params / 1e6))
 
@@ -188,7 +202,8 @@ def main(args):
     # Set up optimizer with weight decay adjustment for bias and norm layers
     param_groups = misc.add_weight_decay(model_without_ddp, args.weight_decay)
     optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
-    print(optimizer)
+    print("Optimizer: AdamW")
+    print("Optimizer groups:", len(optimizer.param_groups))
 
     # Resume from checkpoint if provided
     checkpoint_path = os.path.join(args.resume, "checkpoint-last.pth") if args.resume else None

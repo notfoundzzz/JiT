@@ -9,6 +9,7 @@ import cv2
 
 import util.misc as misc
 import util.lr_sched as lr_sched
+from util.amp import get_cuda_autocast_kwargs
 import torch_fidelity
 import copy
 
@@ -34,7 +35,7 @@ def train_one_epoch(model, model_without_ddp, data_loader, optimizer, device, ep
         x = x * 2.0 - 1.0
         labels = labels.to(device, non_blocking=True)
 
-        with torch.amp.autocast('cuda', dtype=torch.bfloat16):
+        with torch.amp.autocast(**get_cuda_autocast_kwargs(device)):
             loss = model(x, labels)
 
         loss_value = loss.item()
@@ -106,7 +107,7 @@ def evaluate(model_without_ddp, args, epoch, batch_size=64, log_writer=None):
         labels_gen = class_label_gen_world[start_idx:end_idx]
         labels_gen = torch.Tensor(labels_gen).long().cuda()
 
-        with torch.amp.autocast('cuda', dtype=torch.bfloat16):
+        with torch.amp.autocast(**get_cuda_autocast_kwargs(labels_gen.device)):
             sampled_images = model_without_ddp.generate(labels_gen)
 
         torch.distributed.barrier()

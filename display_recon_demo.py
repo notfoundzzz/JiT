@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw
 from torchvision.io import read_image
 
 from model_jit import JiT_models
+from util.amp import get_cuda_autocast_kwargs
 
 
 def parse_args():
@@ -67,6 +68,7 @@ def main():
     args = parse_args()
     torch.manual_seed(args.seed)
     torch.set_float32_matmul_precision("high")
+    autocast_kwargs = get_cuda_autocast_kwargs(args.device)
 
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     train_args = checkpoint["args"]
@@ -94,7 +96,7 @@ def main():
         noise = torch.randn_like(clean) * config["noise_scale"]
         noisy = t.view(1, 1, 1, 1) * clean + (1.0 - t.view(1, 1, 1, 1)) * noise
         with torch.no_grad():
-            with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=args.device.startswith("cuda")):
+            with torch.amp.autocast(**autocast_kwargs):
                 pred = model(noisy, t, labels)
         triptych = make_triptych(clean[0], noisy[0], pred[0], f"class_{label}")
         triptychs.append(triptych)

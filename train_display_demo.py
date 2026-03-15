@@ -7,6 +7,7 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
 from model_jit import JiT_models
+from util.amp import get_cuda_autocast_kwargs
 from util.crop import center_crop_arr
 
 
@@ -60,6 +61,7 @@ def main():
     )
 
     device = torch.device(args.device)
+    autocast_kwargs = get_cuda_autocast_kwargs(device)
     model = JiT_models[args.model](
         input_size=args.img_size,
         in_channels=3,
@@ -85,7 +87,7 @@ def main():
             noise = torch.randn_like(images) * args.noise_scale
             noisy = t_view * images + (1.0 - t_view) * noise
 
-            with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=args.device.startswith("cuda")):
+            with torch.amp.autocast(**autocast_kwargs):
                 pred = model(noisy, t, labels)
                 loss = torch.nn.functional.smooth_l1_loss(pred, images)
 
