@@ -37,6 +37,7 @@ def parse_args():
     parser.add_argument("--label", default=0, type=int)
     parser.add_argument("--timestep", default=0.5, type=float)
     parser.add_argument("--seed", default=0, type=int)
+    parser.add_argument("--sr_scale", default=1, type=int, help="Spatial degradation factor before bicubic upsampling")
     return parser.parse_args()
 
 
@@ -68,6 +69,17 @@ def load_rgb_image(path, img_size):
     return tensor * 2.0 - 1.0
 
 
+def degrade_for_spatial_sr(image_tensor, scale):
+    if scale <= 1:
+        return image_tensor.clone()
+    low_size = max(1, image_tensor.shape[-1] // scale)
+    image = tensor_to_pil(image_tensor)
+    low_res = image.resize((low_size, low_size), Image.Resampling.BICUBIC)
+    upsampled = low_res.resize((image_tensor.shape[-1], image_tensor.shape[-1]), Image.Resampling.BICUBIC)
+    tensor = torch.from_numpy(np.array(upsampled)).permute(2, 0, 1).to(torch.float32).div_(255.0)
+    return tensor * 2.0 - 1.0
+
+
 def tensor_to_pil(tensor):
     tensor = ((tensor + 1.0) / 2.0).clamp(0.0, 1.0)
     array = tensor.mul(255).byte().permute(1, 2, 0).cpu().numpy()
@@ -82,7 +94,9 @@ def make_spatial_input(args):
     if not args.input:
         raise ValueError("--input is required in spatial mode")
     clean = load_rgb_image(args.input, args.img_size)
-    return clean, clean.clone(), Path(args.input).stem
+    blackbox_input = degrade_for_spatial_sr(clean, args.sr_scale)
+    stem = Path(args.input).stem if args.sr_scale <= 1 else f"{Path(args.input).stem}_x{args.sr_scale}"
+    return blackbox_input, clean, stem
 
 
 def make_temporal_input(args):
