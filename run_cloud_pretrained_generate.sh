@@ -10,10 +10,12 @@ case "${MODEL_NAME}" in
   "JiT-H/32")
     DEFAULT_CHECKPOINT_PATH="${REPO_DIR}/JiT-H-32/checkpoint-last.pth"
     DEFAULT_CFG_SCALE="2.3"
+    DEFAULT_DISABLE_AMP="1"
     ;;
   *)
     DEFAULT_CHECKPOINT_PATH="${REPO_DIR}/JiT-l-32/checkpoint-last.pth"
     DEFAULT_CFG_SCALE="2.5"
+    DEFAULT_DISABLE_AMP="0"
     ;;
 esac
 
@@ -29,6 +31,7 @@ EMA_KEY="${EMA_KEY:-model_ema1}"
 LABELS="${LABELS:-0,207,281}"
 SEEDS="${SEEDS:-0,1,2}"
 TRITON_LIBCUDA_PATH="${TRITON_LIBCUDA_PATH:-/usr/lib64}"
+DISABLE_AMP="${DISABLE_AMP:-${DEFAULT_DISABLE_AMP}}"
 
 mkdir -p "${LOG_DIR}" "${OUTPUT_ROOT}"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
@@ -46,6 +49,7 @@ echo "Model: ${MODEL_NAME}"
 echo "Checkpoint: ${CHECKPOINT_PATH}"
 echo "Output root: ${OUTPUT_ROOT}"
 echo "TRITON_LIBCUDA_PATH: ${TRITON_LIBCUDA_PATH}"
+echo "Disable AMP: ${DISABLE_AMP}"
 echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
@@ -87,6 +91,10 @@ for raw_label in "${LABEL_ARRAY[@]}"; do
     RUN_OUT_DIR="${OUTPUT_ROOT}/label_${label}_seed_${seed}"
     mkdir -p "${RUN_OUT_DIR}"
     echo "Generating label=${label}, seed=${seed} ..."
+    EXTRA_ARGS=()
+    if [[ "${DISABLE_AMP}" == "1" ]]; then
+      EXTRA_ARGS+=(--disable_amp)
+    fi
     if ! "${JIT_PYTHON}" generate_pretrained_samples.py \
       --checkpoint "${CHECKPOINT_PATH}" \
       --output_dir "${RUN_OUT_DIR}" \
@@ -98,7 +106,8 @@ for raw_label in "${LABEL_ARRAY[@]}"; do
       --ema_key "${EMA_KEY}" \
       --device "${DEVICE}" \
       --labels "${label}" \
-      --seed "${seed}" >>"${LOG_FILE}" 2>&1; then
+      --seed "${seed}" \
+      "${EXTRA_ARGS[@]}" >>"${LOG_FILE}" 2>&1; then
       echo "Generation failed for label=${label}, seed=${seed}. Last log lines:"
       tail -n 20 "${LOG_FILE}"
       exit 1

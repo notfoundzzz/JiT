@@ -32,6 +32,7 @@ def parse_args():
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("--labels", default="0", type=str)
     parser.add_argument("--seed", default=0, type=int)
+    parser.add_argument("--disable_amp", action="store_true")
     return parser.parse_args()
 
 
@@ -81,10 +82,13 @@ def main():
     label_values = [int(item.strip()) for item in args.labels.split(",") if item.strip()]
     labels = torch.tensor(label_values, dtype=torch.long, device=args.device)
 
-    autocast_kwargs = get_cuda_autocast_kwargs(args.device)
     with torch.no_grad():
-        with torch.amp.autocast(**autocast_kwargs):
+        if args.disable_amp:
             samples = model.generate(labels)
+        else:
+            autocast_kwargs = get_cuda_autocast_kwargs(args.device)
+            with torch.amp.autocast(**autocast_kwargs):
+                samples = model.generate(labels)
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
