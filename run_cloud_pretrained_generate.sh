@@ -2,20 +2,33 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
+REPO_DIR="$(pwd)"
 
 JIT_PYTHON="${JIT_PYTHON:-/data/Shenzhen/zhahongli/envs/jit-local/bin/python}"
 MODEL_NAME="${MODEL_NAME:-JiT-L/32}"
-CHECKPOINT_PATH="${CHECKPOINT_PATH:-/data/Shenzhen/zhahongli/JiT-cloud-smoke/JiT-l-32/checkpoint-last.pth}"
-OUTPUT_ROOT="${OUTPUT_ROOT:-/data/Shenzhen/zhahongli/JiT-cloud-smoke/generated_pretrained_cloud}"
+case "${MODEL_NAME}" in
+  "JiT-H/32")
+    DEFAULT_CHECKPOINT_PATH="${REPO_DIR}/JiT-H-32/checkpoint-last.pth"
+    DEFAULT_CFG_SCALE="2.3"
+    ;;
+  *)
+    DEFAULT_CHECKPOINT_PATH="${REPO_DIR}/JiT-l-32/checkpoint-last.pth"
+    DEFAULT_CFG_SCALE="2.5"
+    ;;
+esac
+
+CHECKPOINT_PATH="${CHECKPOINT_PATH:-${DEFAULT_CHECKPOINT_PATH}}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-${REPO_DIR}/generated_pretrained_cloud}"
 LOG_DIR="${LOG_DIR:-./logs}"
 DEVICE="${DEVICE:-cuda}"
 IMG_SIZE="${IMG_SIZE:-512}"
 NOISE_SCALE="${NOISE_SCALE:-2.0}"
-CFG_SCALE="${CFG_SCALE:-2.5}"
+CFG_SCALE="${CFG_SCALE:-${DEFAULT_CFG_SCALE}}"
 NUM_STEPS="${NUM_STEPS:-50}"
 EMA_KEY="${EMA_KEY:-model_ema1}"
 LABELS="${LABELS:-0,207,281}"
 SEEDS="${SEEDS:-0,1,2}"
+TRITON_LIBCUDA_PATH="${TRITON_LIBCUDA_PATH:-/usr/lib64}"
 
 mkdir -p "${LOG_DIR}" "${OUTPUT_ROOT}"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
@@ -26,11 +39,13 @@ ln -sfn "$(basename "${LOG_FILE}")" "${LATEST_LOG_LINK}"
 unset LD_LIBRARY_PATH
 unset CUDA_HOME
 unset CUDA_PATH
+export TRITON_LIBCUDA_PATH
 
 echo "Pretrained generation run starting..."
 echo "Model: ${MODEL_NAME}"
 echo "Checkpoint: ${CHECKPOINT_PATH}"
 echo "Output root: ${OUTPUT_ROOT}"
+echo "TRITON_LIBCUDA_PATH: ${TRITON_LIBCUDA_PATH}"
 echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
