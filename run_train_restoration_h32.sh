@@ -52,7 +52,7 @@ if [[ ! -f "${PRETRAINED_CHECKPOINT}" ]]; then
   exit 1
 fi
 
-"${JIT_PYTHON}" - <<'PY' | tee -a "${LOG_FILE}"
+if ! "${JIT_PYTHON}" - <<'PY' | tee -a "${LOG_FILE}"
 import torch
 print("torch", torch.__version__)
 print("cuda available", torch.cuda.is_available())
@@ -61,6 +61,11 @@ if not torch.cuda.is_available():
     raise SystemExit("CUDA is not available in the uploaded environment.")
 print("device 0", torch.cuda.get_device_name(0))
 PY
+then
+  echo "Environment check failed. Last log lines:"
+  tail -n 30 "${LOG_FILE}"
+  exit 1
+fi
 
 if ! "${JIT_PYTHON}" main_jit_restoration.py \
   --model "${MODEL_NAME}" \
@@ -72,7 +77,7 @@ if ! "${JIT_PYTHON}" main_jit_restoration.py \
   --batch_size "${BATCH_SIZE}" \
   --epochs "${EPOCHS}" \
   --num_workers "${NUM_WORKERS}" \
-  --device "${DEVICE}" >>"${LOG_FILE}" 2>&1; then
+  --device "${DEVICE}" 2>&1 | tee -a "${LOG_FILE}"; then
   echo "Restoration training failed. Last log lines:"
   tail -n 30 "${LOG_FILE}"
   exit 1
