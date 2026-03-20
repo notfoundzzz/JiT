@@ -65,10 +65,26 @@ def maybe_load_pretrained(model_without_ddp, args):
         return
     checkpoint = torch.load(args.pretrained_checkpoint, map_location="cpu", weights_only=True)
     state_dict = checkpoint[args.ema_key]
-    missing, unexpected = model_without_ddp.load_state_dict(state_dict, strict=False)
+    model_state = model_without_ddp.state_dict()
+    filtered_state = {}
+    skipped = []
+    for key, value in state_dict.items():
+        if key not in model_state:
+            skipped.append((key, "missing in target model"))
+            continue
+        if model_state[key].shape != value.shape:
+            skipped.append((key, f"shape {tuple(value.shape)} -> {tuple(model_state[key].shape)}"))
+            continue
+        filtered_state[key] = value
+
+    missing, unexpected = model_without_ddp.load_state_dict(filtered_state, strict=False)
     print("Loaded pretrained checkpoint:", args.pretrained_checkpoint)
     print("Missing keys:", len(missing))
     print("Unexpected keys:", len(unexpected))
+    if skipped:
+        print("Skipped pretrained keys:", len(skipped))
+        for key, reason in skipped[:20]:
+            print(f"  {key}: {reason}")
 
 
 def main(args):
