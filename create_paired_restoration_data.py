@@ -45,7 +45,7 @@ def random_degrade(image, rng):
     degraded = degraded.resize(image.size, up_method)
 
     if rng.random() < 0.8:
-        quality = rng.randint(35, 85)
+        quality = int(rng.integers(35, 86))
         buffer = BytesIO()
         degraded.save(buffer, format="JPEG", quality=quality)
         buffer.seek(0)
