@@ -25,8 +25,11 @@ def train_one_epoch_restoration(model, model_without_ddp, data_loader, optimizer
         lq = lq.to(device, non_blocking=True)
         hq = hq.to(device, non_blocking=True)
 
-        with torch.amp.autocast(**autocast_kwargs):
+        if args.disable_amp:
             loss = model(hq, lq)
+        else:
+            with torch.amp.autocast(**autocast_kwargs):
+                loss = model(hq, lq)
 
         loss_value = loss.item()
         if not math.isfinite(loss_value):

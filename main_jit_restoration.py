@@ -15,6 +15,7 @@ import util.misc as misc
 from denoiser_restoration import RestorationDenoiser
 from engine_restoration import train_one_epoch_restoration
 from paired_image_dataset import PairedImageDataset
+from util.amp import get_cuda_autocast_kwargs
 
 
 def get_args_parser():
@@ -45,6 +46,7 @@ def get_args_parser():
     parser.add_argument("--pin_mem", action="store_true")
     parser.add_argument("--no_pin_mem", action="store_false", dest="pin_mem")
     parser.set_defaults(pin_mem=True)
+    parser.add_argument("--disable_amp", action="store_true")
     parser.add_argument("--data_path", required=True, type=str)
     parser.add_argument("--output_dir", default="./output_restoration", type=str)
     parser.add_argument("--resume", default="", type=str)
@@ -131,6 +133,11 @@ def main(args):
     model = RestorationDenoiser(args)
     maybe_load_pretrained(model, args)
     model.to(device)
+    if args.disable_amp:
+        print("AMP dtype: disabled")
+    else:
+        amp_dtype = get_cuda_autocast_kwargs(device).get("dtype")
+        print("AMP dtype:", str(amp_dtype).replace("torch.", "") if amp_dtype is not None else "disabled")
 
     eff_batch_size = args.batch_size * misc.get_world_size()
     if args.lr is None:

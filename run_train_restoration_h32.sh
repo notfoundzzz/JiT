@@ -17,6 +17,7 @@ NUM_WORKERS="${NUM_WORKERS:-0}"
 DEVICE="${DEVICE:-cuda}"
 LOG_DIR="${LOG_DIR:-${REPO_DIR}/logs}"
 TRITON_LIBCUDA_PATH="${TRITON_LIBCUDA_PATH:-/usr/lib64}"
+DISABLE_AMP="${DISABLE_AMP:-1}"
 
 mkdir -p "${LOG_DIR}" "${OUTPUT_DIR}"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
@@ -35,6 +36,7 @@ echo "Data path: ${DATA_PATH}"
 echo "Output dir: ${OUTPUT_DIR}"
 echo "Pretrained checkpoint: ${PRETRAINED_CHECKPOINT}"
 echo "TRITON_LIBCUDA_PATH: ${TRITON_LIBCUDA_PATH}"
+echo "Disable AMP: ${DISABLE_AMP}"
 echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
@@ -67,6 +69,11 @@ then
   exit 1
 fi
 
+EXTRA_ARGS=()
+if [[ "${DISABLE_AMP}" == "1" ]]; then
+  EXTRA_ARGS+=(--disable_amp)
+fi
+
 if ! "${JIT_PYTHON}" main_jit_restoration.py \
   --model "${MODEL_NAME}" \
   --img_size "${IMG_SIZE}" \
@@ -77,7 +84,8 @@ if ! "${JIT_PYTHON}" main_jit_restoration.py \
   --batch_size "${BATCH_SIZE}" \
   --epochs "${EPOCHS}" \
   --num_workers "${NUM_WORKERS}" \
-  --device "${DEVICE}" 2>&1 | tee -a "${LOG_FILE}"; then
+  --device "${DEVICE}" \
+  "${EXTRA_ARGS[@]}" 2>&1 | tee -a "${LOG_FILE}"; then
   echo "Restoration training failed. Last log lines:"
   tail -n 30 "${LOG_FILE}"
   exit 1
