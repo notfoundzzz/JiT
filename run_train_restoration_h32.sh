@@ -12,12 +12,13 @@ PRETRAINED_CHECKPOINT="${PRETRAINED_CHECKPOINT:-${REPO_DIR}/JiT-H-32/checkpoint-
 EMA_KEY="${EMA_KEY:-model_ema1}"
 IMG_SIZE="${IMG_SIZE:-512}"
 BATCH_SIZE="${BATCH_SIZE:-1}"
-EPOCHS="${EPOCHS:-1}"
+EPOCHS="${EPOCHS:-10}"
 NUM_WORKERS="${NUM_WORKERS:-0}"
 DEVICE="${DEVICE:-cuda}"
 LOG_DIR="${LOG_DIR:-${REPO_DIR}/logs}"
 TRITON_LIBCUDA_PATH="${TRITON_LIBCUDA_PATH:-/usr/lib64}"
 DISABLE_AMP="${DISABLE_AMP:-1}"
+BLR="${BLR:-0.01}"
 
 mkdir -p "${LOG_DIR}" "${OUTPUT_DIR}"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
@@ -37,6 +38,7 @@ echo "Output dir: ${OUTPUT_DIR}"
 echo "Pretrained checkpoint: ${PRETRAINED_CHECKPOINT}"
 echo "TRITON_LIBCUDA_PATH: ${TRITON_LIBCUDA_PATH}"
 echo "Disable AMP: ${DISABLE_AMP}"
+echo "BLR: ${BLR}"
 echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
@@ -82,6 +84,7 @@ if ! "${JIT_PYTHON}" main_jit_restoration.py \
   --pretrained_checkpoint "${PRETRAINED_CHECKPOINT}" \
   --ema_key "${EMA_KEY}" \
   --batch_size "${BATCH_SIZE}" \
+  --blr "${BLR}" \
   --epochs "${EPOCHS}" \
   --num_workers "${NUM_WORKERS}" \
   --device "${DEVICE}" \
