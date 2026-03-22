@@ -25,6 +25,8 @@ def parse_args():
     parser.add_argument("--t_eps", default=5e-2, type=float)
     parser.add_argument("--attn_dropout", default=0.0, type=float)
     parser.add_argument("--proj_dropout", default=0.0, type=float)
+    parser.add_argument("--ema_decay1", default=0.9999, type=float)
+    parser.add_argument("--ema_decay2", default=0.9996, type=float)
     parser.add_argument("--ema_key", default="model_ema1", choices=["model", "model_ema1", "model_ema2"])
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("--seed", default=0, type=int)
