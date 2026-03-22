@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from PIL import Image
+from torch.serialization import add_safe_globals
 
 from denoiser_restoration import RestorationDenoiser
 from util.amp import get_cuda_autocast_kwargs
@@ -55,7 +56,8 @@ def main():
         raise RuntimeError("CUDA requested but not available")
 
     model = RestorationDenoiser(args)
-    checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
+    add_safe_globals([argparse.Namespace])
+    checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     model.load_state_dict(checkpoint[args.ema_key], strict=True)
     model.eval()
     model.to(args.device)
