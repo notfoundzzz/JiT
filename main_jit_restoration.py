@@ -147,7 +147,11 @@ def main(args):
     print("Actual lr:", args.lr)
 
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        model = torch.nn.parallel.DistributedDataParallel(
+            model,
+            device_ids=[args.gpu],
+            find_unused_parameters=True,
+        )
         model_without_ddp = model.module
     else:
         model_without_ddp = model
@@ -185,6 +189,8 @@ def main(args):
 
     total_time = time.time() - start_time
     print("Training time:", str(datetime.timedelta(seconds=int(total_time))))
+    if args.distributed:
+        torch.distributed.destroy_process_group()
 
 
 if __name__ == "__main__":
