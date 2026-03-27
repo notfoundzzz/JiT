@@ -5,6 +5,7 @@ cd "$(dirname "$0")"
 REPO_DIR="$(pwd)"
 
 JIT_PYTHON="${JIT_PYTHON:-/data/Shenzhen/zhahongli/envs/jit-local/bin/python}"
+TORCHRUN_BIN="${TORCHRUN_BIN:-/data/Shenzhen/zhahongli/envs/jit-local/bin/torchrun}"
 MODEL_NAME="${MODEL_NAME:-JiT-H/32}"
 DATA_PATH="${DATA_PATH:-${REPO_DIR}/paired_JiT-image-to-image}"
 OUTPUT_DIR="${OUTPUT_DIR:-${REPO_DIR}/output_JiT-image-to-image}"
@@ -20,6 +21,8 @@ TRITON_LIBCUDA_PATH="${TRITON_LIBCUDA_PATH:-/usr/lib64}"
 DISABLE_AMP="${DISABLE_AMP:-1}"
 BLR="${BLR:-0.01}"
 RECON_WEIGHT="${RECON_WEIGHT:-1.0}"
+NUM_GPUS="${NUM_GPUS:-1}"
+MASTER_PORT="${MASTER_PORT:-29501}"
 
 mkdir -p "${LOG_DIR}" "${OUTPUT_DIR}"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
@@ -41,10 +44,16 @@ echo "TRITON_LIBCUDA_PATH: ${TRITON_LIBCUDA_PATH}"
 echo "Disable AMP: ${DISABLE_AMP}"
 echo "BLR: ${BLR}"
 echo "Recon weight: ${RECON_WEIGHT}"
+echo "NUM_GPUS: ${NUM_GPUS}"
 echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
   echo "Python executable not found: ${JIT_PYTHON}"
+  exit 1
+fi
+
+if [[ "${NUM_GPUS}" != "1" && ! -x "${TORCHRUN_BIN}" ]]; then
+  echo "torchrun executable not found: ${TORCHRUN_BIN}"
   exit 1
 fi
 
@@ -78,20 +87,46 @@ if [[ "${DISABLE_AMP}" == "1" ]]; then
   EXTRA_ARGS+=(--disable_amp)
 fi
 
-if ! "${JIT_PYTHON}" main_jit_restoration.py \
-  --model "${MODEL_NAME}" \
-  --img_size "${IMG_SIZE}" \
-  --data_path "${DATA_PATH}" \
-  --output_dir "${OUTPUT_DIR}" \
-  --pretrained_checkpoint "${PRETRAINED_CHECKPOINT}" \
-  --ema_key "${EMA_KEY}" \
-  --batch_size "${BATCH_SIZE}" \
-  --blr "${BLR}" \
-  --recon_weight "${RECON_WEIGHT}" \
-  --epochs "${EPOCHS}" \
-  --num_workers "${NUM_WORKERS}" \
-  --device "${DEVICE}" \
-  "${EXTRA_ARGS[@]}" 2>&1 | tee -a "${LOG_FILE}"; then
+TRAIN_CMD=(
+  "${JIT_PYTHON}" main_jit_restoration.py
+  --model "${MODEL_NAME}"
+  --img_size "${IMG_SIZE}"
+  --data_path "${DATA_PATH}"
+  --output_dir "${OUTPUT_DIR}"
+  --pretrained_checkpoint "${PRETRAINED_CHECKPOINT}"
+  --ema_key "${EMA_KEY}"
+  --batch_size "${BATCH_SIZE}"
+  --blr "${BLR}"
+  --recon_weight "${RECON_WEIGHT}"
+  --epochs "${EPOCHS}"
+  --num_workers "${NUM_WORKERS}"
+  --device "${DEVICE}"
+  "${EXTRA_ARGS[@]}"
+)
+
+if [[ "${NUM_GPUS}" != "1" ]]; then
+  TRAIN_CMD=(
+    "${TORCHRUN_BIN}"
+    --nproc_per_node="${NUM_GPUS}"
+    --master_port="${MASTER_PORT}"
+    main_jit_restoration.py
+    --model "${MODEL_NAME}"
+    --img_size "${IMG_SIZE}"
+    --data_path "${DATA_PATH}"
+    --output_dir "${OUTPUT_DIR}"
+    --pretrained_checkpoint "${PRETRAINED_CHECKPOINT}"
+    --ema_key "${EMA_KEY}"
+    --batch_size "${BATCH_SIZE}"
+    --blr "${BLR}"
+    --recon_weight "${RECON_WEIGHT}"
+    --epochs "${EPOCHS}"
+    --num_workers "${NUM_WORKERS}"
+    --device "${DEVICE}"
+    "${EXTRA_ARGS[@]}"
+  )
+fi
+
+if ! "${TRAIN_CMD[@]}" 2>&1 | tee -a "${LOG_FILE}"; then
   echo "Restoration training failed. Last log lines:"
   tail -n 30 "${LOG_FILE}"
   exit 1
