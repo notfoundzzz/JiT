@@ -5,7 +5,6 @@ cd "$(dirname "$0")"
 REPO_DIR="$(pwd)"
 
 JIT_PYTHON="${JIT_PYTHON:-/data/Shenzhen/zhahongli/envs/jit-local/bin/python}"
-TORCHRUN_BIN="${TORCHRUN_BIN:-/data/Shenzhen/zhahongli/envs/jit-local/bin/torchrun}"
 MODEL_NAME="${MODEL_NAME:-JiT-H/32}"
 DATA_PATH="${DATA_PATH:-${REPO_DIR}/paired_JiT-image-to-image}"
 OUTPUT_DIR="${OUTPUT_DIR:-${REPO_DIR}/output_JiT-image-to-image}"
@@ -49,11 +48,6 @@ echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
   echo "Python executable not found: ${JIT_PYTHON}"
-  exit 1
-fi
-
-if [[ "${NUM_GPUS}" != "1" && ! -x "${TORCHRUN_BIN}" ]]; then
-  echo "torchrun executable not found: ${TORCHRUN_BIN}"
   exit 1
 fi
 
@@ -106,7 +100,7 @@ TRAIN_CMD=(
 
 if [[ "${NUM_GPUS}" != "1" ]]; then
   TRAIN_CMD=(
-    "${TORCHRUN_BIN}"
+    "${JIT_PYTHON}" -m torch.distributed.run
     --nproc_per_node="${NUM_GPUS}"
     --master_port="${MASTER_PORT}"
     main_jit_restoration.py
