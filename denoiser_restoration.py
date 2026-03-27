@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from model_jit_restoration import build_restoration_model
 
@@ -21,6 +22,7 @@ class RestorationDenoiser(nn.Module):
         self.noise_scale = args.noise_scale
         self.method = args.sampling_method
         self.steps = args.num_sampling_steps
+        self.recon_weight = args.recon_weight
         self.ema_decay1 = args.ema_decay1
         self.ema_decay2 = args.ema_decay2
         self.ema_params1 = None
@@ -39,8 +41,9 @@ class RestorationDenoiser(nn.Module):
         x_pred = self.net(z, t.flatten(), cond_img)
         v_pred = (x_pred - z) / (1 - t).clamp_min(self.t_eps)
 
-        loss = (v - v_pred) ** 2
-        return loss.mean(dim=(1, 2, 3)).mean()
+        diffusion_loss = ((v - v_pred) ** 2).mean(dim=(1, 2, 3)).mean()
+        recon_loss = F.l1_loss(x_pred, x)
+        return diffusion_loss + self.recon_weight * recon_loss
 
     @torch.no_grad()
     def generate(self, cond_img):

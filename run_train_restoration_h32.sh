@@ -19,6 +19,7 @@ LOG_DIR="${LOG_DIR:-${REPO_DIR}/logs}"
 TRITON_LIBCUDA_PATH="${TRITON_LIBCUDA_PATH:-/usr/lib64}"
 DISABLE_AMP="${DISABLE_AMP:-1}"
 BLR="${BLR:-0.01}"
+RECON_WEIGHT="${RECON_WEIGHT:-1.0}"
 
 mkdir -p "${LOG_DIR}" "${OUTPUT_DIR}"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
@@ -39,6 +40,7 @@ echo "Pretrained checkpoint: ${PRETRAINED_CHECKPOINT}"
 echo "TRITON_LIBCUDA_PATH: ${TRITON_LIBCUDA_PATH}"
 echo "Disable AMP: ${DISABLE_AMP}"
 echo "BLR: ${BLR}"
+echo "Recon weight: ${RECON_WEIGHT}"
 echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
@@ -85,6 +87,7 @@ if ! "${JIT_PYTHON}" main_jit_restoration.py \
   --ema_key "${EMA_KEY}" \
   --batch_size "${BATCH_SIZE}" \
   --blr "${BLR}" \
+  --recon_weight "${RECON_WEIGHT}" \
   --epochs "${EPOCHS}" \
   --num_workers "${NUM_WORKERS}" \
   --device "${DEVICE}" \

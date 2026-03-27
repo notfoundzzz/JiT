@@ -38,6 +38,7 @@ def get_args_parser():
     parser.add_argument("--P_std", default=0.8, type=float)
     parser.add_argument("--noise_scale", default=1.0, type=float)
     parser.add_argument("--t_eps", default=5e-2, type=float)
+    parser.add_argument("--recon_weight", default=1.0, type=float)
     parser.add_argument("--sampling_method", default="heun", type=str)
     parser.add_argument("--num_sampling_steps", default=50, type=int)
     parser.add_argument("--seed", default=0, type=int)
@@ -138,10 +139,12 @@ def main(args):
     else:
         amp_dtype = get_cuda_autocast_kwargs(device).get("dtype")
         print("AMP dtype:", str(amp_dtype).replace("torch.", "") if amp_dtype is not None else "disabled")
+    print("Recon weight:", args.recon_weight)
 
     eff_batch_size = args.batch_size * misc.get_world_size()
     if args.lr is None:
         args.lr = args.blr * eff_batch_size / 256
+    print("Actual lr:", args.lr)
 
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
