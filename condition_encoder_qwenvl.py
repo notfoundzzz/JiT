@@ -49,6 +49,7 @@ class QwenVLConditionEncoder(nn.Module):
 
         pooled_tokens = []
         for tokens in image_tokens:
+            tokens = tokens.to(dtype=self.projector.weight.dtype)
             tokens = self.projector(tokens)
             tokens = F.adaptive_avg_pool1d(tokens.transpose(0, 1).unsqueeze(0), self.num_tokens)
             tokens = tokens.squeeze(0).transpose(0, 1)
