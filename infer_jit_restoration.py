@@ -18,6 +18,7 @@ def parse_args():
     parser.add_argument("--output", required=True, type=str)
     parser.add_argument("--model", default="JiT-L/32", type=str)
     parser.add_argument("--img_size", default=256, type=int)
+    parser.add_argument("--qwen_model_path", required=True, type=str)
     parser.add_argument("--noise_scale", default=1.0, type=float)
     parser.add_argument("--sampling_method", default="heun", type=str)
     parser.add_argument("--num_sampling_steps", default=50, type=int)

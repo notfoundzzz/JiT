@@ -13,7 +13,7 @@ class RestorationDenoiser(nn.Module):
             img_size=args.img_size,
             attn_dropout=args.attn_dropout,
             proj_dropout=args.proj_dropout,
-            cond_channels=3,
+            qwen_model_path=args.qwen_model_path,
         )
         self.img_size = args.img_size
         self.P_mean = args.P_mean
@@ -27,6 +27,23 @@ class RestorationDenoiser(nn.Module):
         self.ema_decay2 = args.ema_decay2
         self.ema_params1 = None
         self.ema_params2 = None
+        self._freeze_pretrained_weights()
+
+    def _freeze_pretrained_weights(self):
+        for param in self.net.parameters():
+            param.requires_grad = False
+
+        trainable_modules = [
+            self.net.cond_encoder.projector,
+            self.net.cond_encoder.global_proj,
+            self.net.cond_encoder.token_norm,
+            self.net.cond_encoder.global_norm,
+            self.net.cond_token_norm,
+            self.net.cond_global_norm,
+        ]
+        for module in trainable_modules:
+            for param in module.parameters():
+                param.requires_grad = True
 
     def sample_t(self, n, device=None):
         z = torch.randn(n, device=device) * self.P_std + self.P_mean
@@ -36,14 +53,9 @@ class RestorationDenoiser(nn.Module):
         t = self.sample_t(x.size(0), device=x.device).view(-1, *([1] * (x.ndim - 1)))
         e = torch.randn_like(x) * self.noise_scale
         z = t * x + (1 - t) * e
-        v = (x - z) / (1 - t).clamp_min(self.t_eps)
-
         x_pred = self.net(z, t.flatten(), cond_img)
-        v_pred = (x_pred - z) / (1 - t).clamp_min(self.t_eps)
-
-        diffusion_loss = ((v - v_pred) ** 2).mean(dim=(1, 2, 3)).mean()
         recon_loss = F.l1_loss(x_pred, x)
-        return diffusion_loss + self.recon_weight * recon_loss
+        return self.recon_weight * recon_loss
 
     @torch.no_grad()
     def generate(self, cond_img):

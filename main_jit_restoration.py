@@ -49,6 +49,7 @@ def get_args_parser():
     parser.set_defaults(pin_mem=True)
     parser.add_argument("--disable_amp", action="store_true")
     parser.add_argument("--data_path", required=True, type=str)
+    parser.add_argument("--qwen_model_path", required=True, type=str)
     parser.add_argument("--output_dir", default="./output_restoration", type=str)
     parser.add_argument("--resume", default="", type=str)
     parser.add_argument("--pretrained_checkpoint", default="", type=str)
@@ -117,6 +118,7 @@ def main(args):
     dataset_train = PairedImageDataset(args.data_path, args.img_size)
     print("Dataset:", dataset_train.__class__.__name__)
     print("Training samples:", len(dataset_train))
+    print("Qwen model path:", args.qwen_model_path)
 
     sampler_train = torch.utils.data.DistributedSampler(
         dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True

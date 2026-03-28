@@ -9,6 +9,7 @@ MODEL_NAME="${MODEL_NAME:-JiT-H/32}"
 IMG_SIZE="${IMG_SIZE:-512}"
 OUTPUT_DIR="${OUTPUT_DIR:-${REPO_DIR}/output_JiT-image-to-image}"
 CHECKPOINT_PATH="${CHECKPOINT_PATH:-${OUTPUT_DIR}/checkpoint-last.pth}"
+QWEN_MODEL_PATH="${QWEN_MODEL_PATH:-/data/Shenzhen/zhahongli/models/Qwen2-VL-2B-Instruct}"
 INPUT_PATH="${INPUT_PATH:-${REPO_DIR}/paired_JiT-image-to-image/lq/sample_00000.png}"
 TARGET_PATH="${TARGET_PATH:-${REPO_DIR}/paired_JiT-image-to-image/hq/sample_00000.png}"
 RESTORED_PATH="${RESTORED_PATH:-${OUTPUT_DIR}/sample_00000_restored.png}"
@@ -31,6 +32,7 @@ export TRITON_LIBCUDA_PATH
 
 echo "JiT image-to-image inference starting..."
 echo "Checkpoint: ${CHECKPOINT_PATH}"
+echo "Qwen model path: ${QWEN_MODEL_PATH}"
 echo "Input: ${INPUT_PATH}"
 echo "Target: ${TARGET_PATH}"
 echo "Restored output: ${RESTORED_PATH}"
@@ -50,6 +52,11 @@ for required_path in "${CHECKPOINT_PATH}" "${INPUT_PATH}" "${TARGET_PATH}"; do
   fi
 done
 
+if [[ ! -d "${QWEN_MODEL_PATH}" ]]; then
+  echo "Qwen model path not found: ${QWEN_MODEL_PATH}"
+  exit 1
+fi
+
 EXTRA_ARGS=()
 if [[ "${DISABLE_AMP}" == "1" ]]; then
   EXTRA_ARGS+=(--disable_amp)
@@ -61,6 +68,7 @@ if ! "${JIT_PYTHON}" infer_jit_restoration.py \
   --output "${RESTORED_PATH}" \
   --model "${MODEL_NAME}" \
   --img_size "${IMG_SIZE}" \
+  --qwen_model_path "${QWEN_MODEL_PATH}" \
   --device "${DEVICE}" \
   "${EXTRA_ARGS[@]}" 2>&1 | tee -a "${LOG_FILE}"; then
   echo "Restoration inference failed. Last log lines:"

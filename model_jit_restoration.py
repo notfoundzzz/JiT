@@ -1,15 +1,15 @@
 import torch
 import torch.nn as nn
 
-from condition_encoder import ImageConditionEncoder
+from condition_encoder_qwenvl import QwenVLConditionEncoder
 from model_jit import JiT
 
 
 class JiTRestoration(JiT):
-    def __init__(self, *args, cond_channels=3, **kwargs):
+    def __init__(self, *args, qwen_model_path, **kwargs):
         super().__init__(*args, **kwargs)
-        self.cond_encoder = ImageConditionEncoder(
-            in_channels=cond_channels,
+        self.cond_encoder = QwenVLConditionEncoder(
+            model_path=qwen_model_path,
             hidden_size=self.hidden_size,
             num_tokens=self.in_context_len,
         )
@@ -43,14 +43,14 @@ class JiTRestoration(JiT):
         return output
 
 
-def build_restoration_model(model_name, img_size, attn_dropout, proj_dropout, cond_channels=3):
+def build_restoration_model(model_name, img_size, attn_dropout, proj_dropout, qwen_model_path):
     kwargs = dict(
         input_size=img_size,
         in_channels=3,
         num_classes=1000,
         attn_drop=attn_dropout,
         proj_drop=proj_dropout,
-        cond_channels=cond_channels,
+        qwen_model_path=qwen_model_path,
     )
     if model_name == "JiT-B/16":
         return JiTRestoration(depth=12, hidden_size=768, num_heads=12,

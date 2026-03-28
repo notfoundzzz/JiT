@@ -9,6 +9,7 @@ MODEL_NAME="${MODEL_NAME:-JiT-H/32}"
 DATA_PATH="${DATA_PATH:-${REPO_DIR}/paired_JiT-image-to-image}"
 OUTPUT_DIR="${OUTPUT_DIR:-${REPO_DIR}/output_JiT-image-to-image}"
 PRETRAINED_CHECKPOINT="${PRETRAINED_CHECKPOINT:-${REPO_DIR}/JiT-H-32/checkpoint-last.pth}"
+QWEN_MODEL_PATH="${QWEN_MODEL_PATH:-/data/Shenzhen/zhahongli/models/Qwen2-VL-2B-Instruct}"
 EMA_KEY="${EMA_KEY:-model_ema1}"
 IMG_SIZE="${IMG_SIZE:-512}"
 BATCH_SIZE="${BATCH_SIZE:-1}"
@@ -39,6 +40,7 @@ echo "Model: ${MODEL_NAME}"
 echo "Data path: ${DATA_PATH}"
 echo "Output dir: ${OUTPUT_DIR}"
 echo "Pretrained checkpoint: ${PRETRAINED_CHECKPOINT}"
+echo "Qwen model path: ${QWEN_MODEL_PATH}"
 echo "TRITON_LIBCUDA_PATH: ${TRITON_LIBCUDA_PATH}"
 echo "Disable AMP: ${DISABLE_AMP}"
 echo "BLR: ${BLR}"
@@ -53,6 +55,11 @@ fi
 
 if [[ ! -d "${DATA_PATH}/lq" || ! -d "${DATA_PATH}/hq" ]]; then
   echo "Paired dataset not found under ${DATA_PATH}"
+  exit 1
+fi
+
+if [[ ! -d "${QWEN_MODEL_PATH}" ]]; then
+  echo "Qwen model path not found: ${QWEN_MODEL_PATH}"
   exit 1
 fi
 
@@ -86,6 +93,7 @@ TRAIN_CMD=(
   --model "${MODEL_NAME}"
   --img_size "${IMG_SIZE}"
   --data_path "${DATA_PATH}"
+  --qwen_model_path "${QWEN_MODEL_PATH}"
   --output_dir "${OUTPUT_DIR}"
   --pretrained_checkpoint "${PRETRAINED_CHECKPOINT}"
   --ema_key "${EMA_KEY}"
@@ -107,6 +115,7 @@ if [[ "${NUM_GPUS}" != "1" ]]; then
     --model "${MODEL_NAME}"
     --img_size "${IMG_SIZE}"
     --data_path "${DATA_PATH}"
+    --qwen_model_path "${QWEN_MODEL_PATH}"
     --output_dir "${OUTPUT_DIR}"
     --pretrained_checkpoint "${PRETRAINED_CHECKPOINT}"
     --ema_key "${EMA_KEY}"
