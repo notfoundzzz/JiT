@@ -12,6 +12,7 @@ NUM_SAMPLES="${NUM_SAMPLES:-200}"
 SEED="${SEED:-0}"
 SCAN_LOG_FREQ="${SCAN_LOG_FREQ:-5000}"
 SAVE_LOG_FREQ="${SAVE_LOG_FREQ:-100}"
+MAX_SOURCE_IMAGES="${MAX_SOURCE_IMAGES:-4096}"
 LOG_DIR="${LOG_DIR:-${REPO_DIR}/logs}"
 
 mkdir -p "${LOG_DIR}"
@@ -27,6 +28,7 @@ echo "Image size: ${IMG_SIZE}"
 echo "Num samples: ${NUM_SAMPLES}"
 echo "Scan log freq: ${SCAN_LOG_FREQ}"
 echo "Save log freq: ${SAVE_LOG_FREQ}"
+echo "Max source images: ${MAX_SOURCE_IMAGES}"
 echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
@@ -46,7 +48,8 @@ if ! "${JIT_PYTHON}" -u create_paired_restoration_data.py \
   --num_samples "${NUM_SAMPLES}" \
   --seed "${SEED}" \
   --scan_log_freq "${SCAN_LOG_FREQ}" \
-  --save_log_freq "${SAVE_LOG_FREQ}" | tee -a "${LOG_FILE}"; then
+  --save_log_freq "${SAVE_LOG_FREQ}" \
+  --max_source_images "${MAX_SOURCE_IMAGES}" | tee -a "${LOG_FILE}"; then
   echo "Data preparation failed. Last log lines:"
   tail -n 30 "${LOG_FILE}"
   exit 1

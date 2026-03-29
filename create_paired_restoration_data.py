@@ -20,21 +20,35 @@ def parse_args():
     parser.add_argument("--extensions", default="jpg,jpeg,png,webp,bmp", type=str)
     parser.add_argument("--scan_log_freq", default=5000, type=int)
     parser.add_argument("--save_log_freq", default=100, type=int)
+    parser.add_argument("--max_source_images", default=4096, type=int)
     return parser.parse_args()
 
 
-def list_images(input_dir, extensions, scan_log_freq):
+def sample_source_images(input_dir, extensions, target_count, scan_log_freq, rng):
     suffixes = {f".{item.strip().lower()}" for item in extensions.split(",") if item.strip()}
     images = []
+    matched = 0
     started = time.time()
     print(f"scanning source directory: {input_dir}")
     for idx, path in enumerate(sorted(Path(input_dir).rglob("*")), start=1):
         if path.is_file() and path.suffix.lower() in suffixes:
-            images.append(path)
-            if len(images) == 1 or len(images) % scan_log_freq == 0:
+            matched += 1
+            if len(images) < target_count:
+                images.append(path)
+            else:
+                replace_idx = rng.randrange(matched)
+                if replace_idx < target_count:
+                    images[replace_idx] = path
+            if matched == 1 or matched % scan_log_freq == 0:
                 elapsed = max(time.time() - started, 1e-6)
-                print(f"scan matched {len(images)} images after {idx} entries ({elapsed:.1f}s)")
-    print(f"scan complete: found {len(images)} images in {time.time() - started:.1f}s")
+                print(
+                    f"scan matched {matched} images after {idx} entries ({elapsed:.1f}s) | "
+                    f"sampled {len(images)}"
+                )
+    print(
+        f"scan complete: matched {matched} images, sampled {len(images)} source images "
+        f"in {time.time() - started:.1f}s"
+    )
     return images
 
 
@@ -79,7 +93,13 @@ def main():
     rng = random.Random(args.seed)
     np_rng = np.random.default_rng(args.seed)
 
-    source_images = list_images(args.input_dir, args.extensions, args.scan_log_freq)
+    source_images = sample_source_images(
+        args.input_dir,
+        args.extensions,
+        min(args.num_samples, args.max_source_images),
+        args.scan_log_freq,
+        rng,
+    )
     if not source_images:
         raise RuntimeError(f"No source images found under {args.input_dir}")
 
