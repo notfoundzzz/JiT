@@ -39,7 +39,7 @@ if [[ ! -d "${SOURCE_DIR}" ]]; then
   exit 1
 fi
 
-if ! "${JIT_PYTHON}" create_paired_restoration_data.py \
+if ! "${JIT_PYTHON}" -u create_paired_restoration_data.py \
   --input_dir "${SOURCE_DIR}" \
   --output_dir "${OUTPUT_DIR}" \
   --img_size "${IMG_SIZE}" \
