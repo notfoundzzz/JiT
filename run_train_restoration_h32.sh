@@ -89,7 +89,7 @@ if [[ "${DISABLE_AMP}" == "1" ]]; then
 fi
 
 TRAIN_CMD=(
-  "${JIT_PYTHON}" main_jit_restoration.py
+  "${JIT_PYTHON}" -u main_jit_restoration.py
   --model "${MODEL_NAME}"
   --img_size "${IMG_SIZE}"
   --data_path "${DATA_PATH}"
@@ -108,7 +108,7 @@ TRAIN_CMD=(
 
 if [[ "${NUM_GPUS}" != "1" ]]; then
   TRAIN_CMD=(
-    "${JIT_PYTHON}" -m torch.distributed.run
+    "${JIT_PYTHON}" -u -m torch.distributed.run
     --nproc_per_node="${NUM_GPUS}"
     --master_port="${MASTER_PORT}"
     main_jit_restoration.py
