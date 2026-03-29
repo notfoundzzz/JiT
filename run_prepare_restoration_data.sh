@@ -10,6 +10,8 @@ OUTPUT_DIR="${OUTPUT_DIR:-${REPO_DIR}/paired_JiT-image-to-image}"
 IMG_SIZE="${IMG_SIZE:-512}"
 NUM_SAMPLES="${NUM_SAMPLES:-200}"
 SEED="${SEED:-0}"
+SCAN_LOG_FREQ="${SCAN_LOG_FREQ:-5000}"
+SAVE_LOG_FREQ="${SAVE_LOG_FREQ:-100}"
 LOG_DIR="${LOG_DIR:-${REPO_DIR}/logs}"
 
 mkdir -p "${LOG_DIR}"
@@ -23,6 +25,8 @@ echo "Source dir: ${SOURCE_DIR}"
 echo "Output dir: ${OUTPUT_DIR}"
 echo "Image size: ${IMG_SIZE}"
 echo "Num samples: ${NUM_SAMPLES}"
+echo "Scan log freq: ${SCAN_LOG_FREQ}"
+echo "Save log freq: ${SAVE_LOG_FREQ}"
 echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
@@ -40,7 +44,9 @@ if ! "${JIT_PYTHON}" create_paired_restoration_data.py \
   --output_dir "${OUTPUT_DIR}" \
   --img_size "${IMG_SIZE}" \
   --num_samples "${NUM_SAMPLES}" \
-  --seed "${SEED}" | tee -a "${LOG_FILE}"; then
+  --seed "${SEED}" \
+  --scan_log_freq "${SCAN_LOG_FREQ}" \
+  --save_log_freq "${SAVE_LOG_FREQ}" | tee -a "${LOG_FILE}"; then
   echo "Data preparation failed. Last log lines:"
   tail -n 30 "${LOG_FILE}"
   exit 1

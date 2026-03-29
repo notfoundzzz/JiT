@@ -1,5 +1,6 @@
 import argparse
 import random
+import time
 from io import BytesIO
 from pathlib import Path
 
@@ -17,15 +18,23 @@ def parse_args():
     parser.add_argument("--num_samples", default=200, type=int)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--extensions", default="jpg,jpeg,png,webp,bmp", type=str)
+    parser.add_argument("--scan_log_freq", default=5000, type=int)
+    parser.add_argument("--save_log_freq", default=100, type=int)
     return parser.parse_args()
 
 
-def list_images(input_dir, extensions):
+def list_images(input_dir, extensions, scan_log_freq):
     suffixes = {f".{item.strip().lower()}" for item in extensions.split(",") if item.strip()}
     images = []
-    for path in sorted(Path(input_dir).rglob("*")):
+    started = time.time()
+    print(f"scanning source directory: {input_dir}")
+    for idx, path in enumerate(sorted(Path(input_dir).rglob("*")), start=1):
         if path.is_file() and path.suffix.lower() in suffixes:
             images.append(path)
+            if len(images) == 1 or len(images) % scan_log_freq == 0:
+                elapsed = max(time.time() - started, 1e-6)
+                print(f"scan matched {len(images)} images after {idx} entries ({elapsed:.1f}s)")
+    print(f"scan complete: found {len(images)} images in {time.time() - started:.1f}s")
     return images
 
 
@@ -70,7 +79,7 @@ def main():
     rng = random.Random(args.seed)
     np_rng = np.random.default_rng(args.seed)
 
-    source_images = list_images(args.input_dir, args.extensions)
+    source_images = list_images(args.input_dir, args.extensions, args.scan_log_freq)
     if not source_images:
         raise RuntimeError(f"No source images found under {args.input_dir}")
 
@@ -80,12 +89,16 @@ def main():
     hq_dir.mkdir(parents=True, exist_ok=True)
     lq_dir.mkdir(parents=True, exist_ok=True)
 
+    started = time.time()
+    skipped = 0
+    print(f"starting paired generation: target={args.num_samples}, img_size={args.img_size}")
     for index in range(args.num_samples):
         source_path = source_images[index % len(source_images)]
         try:
             image = Image.open(source_path).convert("RGB")
         except Exception as exc:
             print(f"skip {source_path}: {exc}")
+            skipped += 1
             continue
 
         hq = center_crop_arr(image, args.img_size)
@@ -95,8 +108,15 @@ def main():
         hq.save(hq_dir / sample_name)
         lq.save(lq_dir / sample_name)
 
-        if index % 50 == 0 or index + 1 == args.num_samples:
-            print(f"saved {index + 1}/{args.num_samples}")
+        if index == 0 or (index + 1) % args.save_log_freq == 0 or index + 1 == args.num_samples:
+            elapsed = max(time.time() - started, 1e-6)
+            rate = (index + 1) / elapsed
+            remaining = args.num_samples - (index + 1)
+            eta = remaining / rate if rate > 0 else float("inf")
+            print(
+                f"saved pair {index + 1}/{args.num_samples} | "
+                f"rate {rate:.2f} pairs/s | eta {eta/60:.1f} min | skipped {skipped}"
+            )
 
     print("ready:")
     print("hq:", hq_dir.resolve())
