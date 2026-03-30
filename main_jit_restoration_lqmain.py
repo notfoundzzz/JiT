@@ -39,6 +39,9 @@ def get_args_parser():
     parser.add_argument("--noise_scale", default=1.0, type=float)
     parser.add_argument("--t_eps", default=5e-2, type=float)
     parser.add_argument("--recon_weight", default=1.0, type=float)
+    parser.add_argument("--lora_rank", default=8, type=int)
+    parser.add_argument("--lora_alpha", default=16.0, type=float)
+    parser.add_argument("--lora_dropout", default=0.0, type=float)
     parser.add_argument("--sampling_method", default="heun", type=str)
     parser.add_argument("--num_sampling_steps", default=1, type=int)
     parser.add_argument("--seed", default=0, type=int)
@@ -142,6 +145,9 @@ def main(args):
         amp_dtype = get_cuda_autocast_kwargs(device).get("dtype")
         print("AMP dtype:", str(amp_dtype).replace("torch.", "") if amp_dtype is not None else "disabled")
     print("Recon weight:", args.recon_weight)
+    print("LoRA rank:", args.lora_rank)
+    print("LoRA alpha:", args.lora_alpha)
+    print("LoRA dropout:", args.lora_dropout)
 
     eff_batch_size = args.batch_size * misc.get_world_size()
     if args.lr is None:
@@ -177,6 +183,12 @@ def main(args):
         model_without_ddp.ema_params1 = copy.deepcopy(list(model_without_ddp.parameters()))
         model_without_ddp.ema_params2 = copy.deepcopy(list(model_without_ddp.parameters()))
         print("Training from scratch")
+    if model_without_ddp.lora_modules:
+        print("LoRA modules:", len(model_without_ddp.lora_modules))
+        for name in model_without_ddp.lora_modules[:20]:
+            print("  ", name)
+    else:
+        print("LoRA modules: 0")
 
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
