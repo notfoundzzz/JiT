@@ -6,6 +6,26 @@ from PIL import Image
 from transformers import AutoProcessor, Qwen2VLModel
 
 
+class ProjectorAdapter(nn.Module):
+    def __init__(self, in_dim, out_dim, hidden_mult=2):
+        super().__init__()
+        hidden_dim = out_dim * hidden_mult
+        self.in_proj = nn.Linear(in_dim, out_dim)
+        self.in_norm = nn.LayerNorm(out_dim)
+        self.adapter = nn.Sequential(
+            nn.Linear(out_dim, hidden_dim),
+            nn.GELU(),
+            nn.Linear(hidden_dim, out_dim),
+        )
+        self.out_norm = nn.LayerNorm(out_dim)
+
+    def forward(self, x):
+        x = self.in_proj(x)
+        x = self.in_norm(x)
+        x = x + self.adapter(x)
+        return self.out_norm(x)
+
+
 class QwenVLConditionEncoder(nn.Module):
     def __init__(self, model_path, hidden_size, num_tokens, freeze=True):
         super().__init__()
@@ -20,7 +40,7 @@ class QwenVLConditionEncoder(nn.Module):
         self.vision_model = qwen_vl.visual
         vision_dim = self.vision_model.config.hidden_size
 
-        self.projector = nn.Linear(vision_dim, hidden_size)
+        self.projector = ProjectorAdapter(vision_dim, hidden_size)
         self.global_proj = nn.Linear(hidden_size, hidden_size)
         self.token_norm = nn.LayerNorm(hidden_size)
         self.global_norm = nn.LayerNorm(hidden_size)
