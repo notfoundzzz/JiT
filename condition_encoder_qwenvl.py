@@ -58,6 +58,9 @@ class QwenVLConditionEncoder(nn.Module):
         images = images.mul(255).byte().permute(0, 2, 3, 1).cpu().numpy()
         return [Image.fromarray(image.astype(np.uint8)) for image in images]
 
+    def _projector_dtype(self):
+        return next(self.projector.parameters()).dtype
+
     def forward(self, cond_img):
         pil_images = self._to_pil_images(cond_img)
         processed = self.processor.image_processor(images=pil_images, return_tensors="pt")
@@ -72,8 +75,9 @@ class QwenVLConditionEncoder(nn.Module):
         image_tokens = torch.split(vision_outputs.pooler_output, split_sizes, dim=0)
 
         pooled_tokens = []
+        projector_dtype = self._projector_dtype()
         for tokens in image_tokens:
-            tokens = tokens.to(dtype=self.projector.output_dtype)
+            tokens = tokens.to(dtype=projector_dtype)
             tokens = self.projector(tokens)
             tokens = F.adaptive_avg_pool1d(tokens.transpose(0, 1).unsqueeze(0), self.num_tokens)
             tokens = tokens.squeeze(0).transpose(0, 1)
