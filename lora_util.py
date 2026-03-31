@@ -33,8 +33,10 @@ class LoRALinear(nn.Module):
 
     def forward(self, x):
         base_out = self.base(x)
-        lora_out = F.linear(self.dropout(x), self.lora_A)
+        lora_x = self.dropout(x).to(dtype=self.lora_A.dtype)
+        lora_out = F.linear(lora_x, self.lora_A)
         lora_out = F.linear(lora_out, self.lora_B)
+        lora_out = lora_out.to(dtype=base_out.dtype)
         return base_out + self.scaling * lora_out
 
 
