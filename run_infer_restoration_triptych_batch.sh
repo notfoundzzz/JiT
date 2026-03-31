@@ -17,6 +17,9 @@ TRITON_LIBCUDA_PATH="${TRITON_LIBCUDA_PATH:-/usr/lib64}"
 LOG_DIR="${LOG_DIR:-${REPO_DIR}/logs}"
 DISABLE_AMP="${DISABLE_AMP:-1}"
 LIMIT="${LIMIT:-0}"
+LORA_RANK="${LORA_RANK:-0}"
+LORA_ALPHA="${LORA_ALPHA:-16}"
+LORA_DROPOUT="${LORA_DROPOUT:-0.0}"
 
 mkdir -p "${LOG_DIR}" "${OUTPUT_DIR}"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
@@ -37,6 +40,9 @@ echo "Target dir: ${TARGET_DIR}"
 echo "Output dir: ${OUTPUT_DIR}"
 echo "Limit: ${LIMIT}"
 echo "Disable AMP: ${DISABLE_AMP}"
+echo "LoRA rank: ${LORA_RANK}"
+echo "LoRA alpha: ${LORA_ALPHA}"
+echo "LoRA dropout: ${LORA_DROPOUT}"
 echo "Full log: ${LOG_FILE}"
 
 if [[ ! -x "${JIT_PYTHON}" ]]; then
@@ -74,6 +80,9 @@ if ! "${JIT_PYTHON}" -u infer_jit_restoration_triptych_batch.py \
   --model "${MODEL_NAME}" \
   --img_size "${IMG_SIZE}" \
   --qwen_model_path "${QWEN_MODEL_PATH}" \
+  --lora_rank "${LORA_RANK}" \
+  --lora_alpha "${LORA_ALPHA}" \
+  --lora_dropout "${LORA_DROPOUT}" \
   --device "${DEVICE}" \
   --limit "${LIMIT}" \
   "${EXTRA_ARGS[@]}" 2>&1 | tee -a "${LOG_FILE}"; then
